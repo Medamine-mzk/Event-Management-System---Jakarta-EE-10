@@ -30,24 +30,55 @@ public class EventRegisterServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        // Retrieve form parameters
-        Long userId = Long.parseLong(request.getParameter("userId"));
-        Long eventId = Long.parseLong(request.getParameter("eventId"));
+        String userIdParam = request.getParameter("userId");
+        String eventIdParam = request.getParameter("eventId");
 
-        // Find user and event by IDs
-        User user = userService.getAllUsers().stream().filter(u -> u.getId().equals(userId)).findFirst().orElse(null);
-        Event event = eventService.getAllEvents().stream().filter(e -> e.getId().equals(eventId)).findFirst().orElse(null);
+        if (userIdParam == null || eventIdParam == null) {
+            response.sendRedirect("event-register?error=Missing+User+or+Event+ID");
+            return;
+        }
 
-        if (user != null && event != null) {
-            // Create and save the registration
-            Registration registration = new Registration(System.currentTimeMillis(), user, event, LocalDateTime.now());
-            registrationService.registerForEvent(registration);
+        try {
+            Long userId = Long.parseLong(userIdParam);
+            Long eventId = Long.parseLong(eventIdParam);
 
-            // Redirect to a success page
-            response.sendRedirect("events");
-        } else {
-            // Handle errors (e.g., invalid user or event ID)
-            response.sendRedirect("event-register?error=Invalid+User+or+Event");
+            User user = userService.getUserById(userId);
+            Event event = eventService.getEventById(eventId);
+
+            if (user == null) {
+                response.sendRedirect("event-register?error=User+not+found");
+                return;
+            }
+
+            if (event == null) {
+                response.sendRedirect("event-register?error=Event+not+found");
+                return;
+            }
+
+            if (registrationService.isUserAlreadyRegistered(user, event)) {
+                response.sendRedirect("event-register?error=Already+registered+for+this+event");
+                return;
+            }
+
+            if (event.getDateTime().isBefore(LocalDateTime.now())) {
+                response.sendRedirect("event-register?error=Event+already+ended");
+                return;
+            }
+
+            Registration registration = new Registration(
+                    System.currentTimeMillis(),
+                    user,
+                    event,
+                    LocalDateTime.now()
+            );
+
+            registrationService.saveRegistration(registration);
+            response.sendRedirect("events?success=Registered+successfully");
+
+        } catch (NumberFormatException e) {
+            response.sendRedirect("event-register?error=Invalid+User+or+Event+ID+format");
+        } catch (Exception e) {
+            response.sendRedirect("event-register?error=An+unexpected+error+occurred");
         }
     }
 }

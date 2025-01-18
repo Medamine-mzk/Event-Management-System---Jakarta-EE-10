@@ -11,6 +11,7 @@ import org.ems.ems.services.EventService;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 
 @WebServlet("/events/create")
 public class CreateEventServlet extends HttpServlet {
@@ -30,14 +31,26 @@ public class CreateEventServlet extends HttpServlet {
         String title = request.getParameter("title");
         String description = request.getParameter("description");
         String dateTime = request.getParameter("dateTime");
-        Event event = new Event();
-        event.setId(System.currentTimeMillis() + (long) (Math.random() * 1000)); //generate ID
-        event.setTitle(title);
-        event.setDescription(description);
-        event.setDateTime(LocalDateTime.parse(dateTime));
 
-        eventService.addEvent(event);
-        response.sendRedirect(request.getContextPath() + "/events");
+        // Validation
+        if (title == null || title.isEmpty() || dateTime == null || dateTime.isEmpty()) {
+            request.setAttribute("error", "Title and Date/Time are required.");
+            request.getRequestDispatcher("/views/create-event.jsp").forward(request, response);
+            return;
+        }
+
+        try {
+            Event event = new Event();
+            //event.setId(System.currentTimeMillis() + (long) (Math.random() * 1000)); // Generate ID
+            event.setTitle(title);
+            event.setDescription(description);
+            event.setDateTime(LocalDateTime.parse(dateTime));
+
+            eventService.saveEvent(event);
+            response.sendRedirect(request.getContextPath() + "/events");
+        } catch (DateTimeParseException e) {
+            request.setAttribute("error", "Invalid Date/Time format. Please use the correct format.");
+            request.getRequestDispatcher("/views/create-event.jsp").forward(request, response);
+        }
     }
 }
-

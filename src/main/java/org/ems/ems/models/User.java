@@ -1,29 +1,25 @@
 package org.ems.ems.models;
+import jakarta.persistence.*;
+import lombok.*;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-
-import java.util.Objects;
-
-@AllArgsConstructor
+@Entity
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     private String name;
     private String email;
     private String password;
+    private String role; // e.g., "USER" or "ADMIN"
 
-    // Overriding equals for comparison
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof User)) return false;
-        User user = (User) o;
-        return Objects.equals(id, user.id);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id);
+    public User(String name, String email, String password, String role) {
+        this.name = name;
+        this.email = email;
+        this.password = password;
+        this.role = role;
     }
 }

@@ -8,9 +8,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.ems.ems.models.User;
 import org.ems.ems.services.UserService;
+import org.springframework.security.crypto.bcrypt.BCrypt;
 
 import java.io.IOException;
-
 @WebServlet("/register")
 public class RegisterServlet extends HttpServlet {
 
@@ -20,22 +20,32 @@ public class RegisterServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        // Forward to login.jsp
-        request.getRequestDispatcher("/views/register.jsp").forward(request, response);
+
+            // Forward to login page
+            request.getRequestDispatcher("/views/register.jsp").forward(request, response);
+
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        // Retrieve form parameters
         String name = request.getParameter("name");
         String email = request.getParameter("email");
         String password = request.getParameter("password");
 
-        // Create a new user and register them
-        User user = new User(System.currentTimeMillis(), name, email, password);
-        userService.registerUser(user);
+        if (name == null || email == null || password == null || name.isEmpty() || email.isEmpty() || password.isEmpty()) {
+            request.setAttribute("error", "All fields are required.");
+            request.getRequestDispatcher("/views/register.jsp").forward(request, response);
+            return;
+        }
 
-        // Redirect to a success page (or back to the homepage)
-        response.sendRedirect("events");
+        // Hash password
+        // BCrypt: A strong hashing algorithm that includes a salt to defend against rainbow table attacks.
+        String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
+
+        // Save user
+        User user = new User(name, email, hashedPassword,"USER");
+        userService.saveUser(user);
+
+        response.sendRedirect("login");
     }
 }

@@ -1,14 +1,22 @@
 package org.ems.ems.models;
-
-import lombok.AllArgsConstructor;
-import lombok.Data;
-
+import jakarta.persistence.*;
+import lombok.*;
 import java.time.LocalDateTime;
-@AllArgsConstructor
+
+@Entity
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Registration {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @ManyToOne
     private User user;
+
+    @ManyToOne
     private Event event;
+
     private LocalDateTime dateTime;
 }

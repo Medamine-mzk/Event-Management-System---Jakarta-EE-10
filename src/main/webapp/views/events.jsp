@@ -9,7 +9,6 @@
 <%@ include file="header.jsp" %>
 <div class="container mt-5">
     <h1 class="mb-4">Upcoming Events</h1>
-
     <!-- Add Create Event Button -->
     <div class="mb-4">
         <a href="events/create" class="btn btn-primary">Create New Event</a>

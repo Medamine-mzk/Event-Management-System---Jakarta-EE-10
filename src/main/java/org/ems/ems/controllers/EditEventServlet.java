@@ -12,6 +12,7 @@ import org.ems.ems.services.EventService;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
 @WebServlet("/events/edit")
 public class EditEventServlet extends HttpServlet {
@@ -22,37 +23,79 @@ public class EditEventServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        Long eventId = Long.parseLong(request.getParameter("id"));
-        Event event = eventService.getEventById(eventId);
+        String idParam = request.getParameter("id");
 
-        if (event != null && event.getDateTime() != null) {
-            // Format the date-time for the frontend
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
-            String formattedDateTime = event.getDateTime().format(formatter);
-            request.setAttribute("formattedDateTime", formattedDateTime);
-        } else {
-            request.setAttribute("formattedDateTime", ""); // Empty if dateTime is null
+        if (idParam == null || idParam.isEmpty()) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Event ID is required.");
+            return;
         }
 
-        request.setAttribute("event", event);
-        request.getRequestDispatcher("/views/edit-event.jsp").forward(request, response);
+        try {
+            Long eventId = Long.parseLong(idParam);
+            Event event = eventService.getEventById(eventId);
+
+            if (event == null) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND, "Event not found.");
+                return;
+            }
+
+            if (event.getDateTime() != null) {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
+                String formattedDateTime = event.getDateTime().format(formatter);
+                request.setAttribute("formattedDateTime", formattedDateTime);
+            } else {
+                request.setAttribute("formattedDateTime", "");
+            }
+
+            request.setAttribute("event", event);
+            request.getRequestDispatcher("/views/edit-event.jsp").forward(request, response);
+
+        } catch (NumberFormatException e) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid Event ID format.");
+        }
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        Long eventId = Long.parseLong(request.getParameter("id"));
+        String idParam = request.getParameter("id");
         String title = request.getParameter("title");
         String description = request.getParameter("description");
         String dateTime = request.getParameter("dateTime");
 
-        Event event = eventService.getEventById(eventId);
-        event.setTitle(title);
-        event.setDescription(description);
-        event.setDateTime(LocalDateTime.parse( dateTime));
+        if (idParam == null || idParam.isEmpty()) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Event ID is required.");
+            return;
+        }
 
-        eventService.updateEvent(event); // Add this method to your EventService.
-        response.sendRedirect(request.getContextPath() + "/events");
+        try {
+            Long eventId = Long.parseLong(idParam);
+            Event event = eventService.getEventById(eventId);
+
+            if (event == null) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND, "Event not found.");
+                return;
+            }
+
+            if (title == null || title.isEmpty() || description == null || description.isEmpty()) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Title and Description are required.");
+                return;
+            }
+
+            try {
+                LocalDateTime parsedDateTime = LocalDateTime.parse(dateTime);
+                event.setTitle(title);
+                event.setDescription(description);
+                event.setDateTime(parsedDateTime);
+
+                eventService.saveEvent(event);
+                response.sendRedirect(request.getContextPath() + "/events");
+            } catch (DateTimeParseException e) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid date-time format.");
+            }
+
+        } catch (NumberFormatException e) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid Event ID format.");
+        }
     }
 }
-

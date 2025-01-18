@@ -1,50 +1,73 @@
 package org.ems.ems.services;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.ems.ems.models.Event;
-import org.ems.ems.models.Registration;
-import org.ems.ems.models.User;
+import org.ems.ems.repository.EventRepository;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 @ApplicationScoped
 public class EventService {
-    private static final List<Event> events = new ArrayList<>();
 
-    public EventService() {
-        // Adding sample data
-        events.add(new Event(1L, "Tech Conference", "Conference on latest tech trends", LocalDateTime.now().plusDays(5),new ArrayList<>()));
-        events.add(new Event(2L, "Music Festival", "Annual music festival", LocalDateTime.now().plusDays(10),new ArrayList<>()));
-        events.add(new Event(3L, "Art Workshop", "Learn art from top artists", LocalDateTime.now().plusDays(15),new ArrayList<>()));
-        Registration reg1 = new Registration(1L, new User(1L, "Alice", "alice@example.com", "password"), events.get(0), LocalDateTime.now());
-        Registration reg2 = new Registration(2L, new User(2L, "Bob", "bob@example.com", "password"), events.get(1), LocalDateTime.now());
-        events.get(0).getRegistrations().add(reg1);
-        events.get(1).getRegistrations().add(reg2);
-    }
+    @Inject
+    private EventRepository eventRepository;
 
+    /**
+     * Fetch all events.
+     *
+     * @return List of events.
+     */
     public List<Event> getAllEvents() {
-        return events;
+        return eventRepository.findAll();
     }
 
-
-    public void addEvent(Event event) {
-        events.add(event);
-    }
+    /**
+     * Fetch an event by its ID.
+     *
+     * @param id The event ID.
+     * @return Event if found, null otherwise.
+     */
     public Event getEventById(Long id) {
-        return events.stream().filter(event -> event.getId().equals(id)).findFirst().orElse(null);
-    }
-    public void updateEvent(Event updatedEvent) {
-        for (int i = 0; i < events.size(); i++) {
-            if (events.get(i).getId() == updatedEvent.getId()) {
-                events.set(i, updatedEvent);
-                break;
-            }
+        if (id == null || id <= 0) {
+            throw new IllegalArgumentException("Invalid event ID");
         }
-    }
-    public void deleteEvent(Long id) {
-        events.removeIf(event -> event.getId() == id);
+        return eventRepository.findById(id);
     }
 
+    /**
+     * Save or update an event.
+     *
+     * @param event The event to save.
+     * @return true if the operation was successful.
+     */
+    public boolean saveEvent(Event event) {
+        if (event == null) {
+            throw new IllegalArgumentException("Event cannot be null");
+        }
+        eventRepository.save(event);
+        return true;
+    }
+
+    /**
+     * Delete an event by its ID.
+     *
+     * @param id The event ID.
+     * @return true if the event was successfully deleted.
+     */
+    public boolean deleteEvent(Long id) {
+        if (id == null || id <= 0) {
+            throw new IllegalArgumentException("Invalid event ID");
+        }
+        Event event = eventRepository.findById(id);
+        if (event == null) {
+            return false; // Event not found
+        }
+        eventRepository.delete(id);
+        return true;
+    }
+
+    public List<Event> searchEvents(String searchQuery) {
+        return eventRepository.searchEvents(searchQuery);
+    }
 }
